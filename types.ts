@@ -1,3 +1,4 @@
+
 export enum UserRole {
   ALUMNI = 'ALUMNI',
   STUDENT = 'STUDENT',
@@ -7,6 +8,15 @@ export enum UserRole {
 export interface Skill {
   name: string;
   level: 'Beginner' | 'Intermediate' | 'Expert';
+}
+
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  link?: string;
+  imageUrl?: string;
 }
 
 export interface User {
@@ -21,6 +31,8 @@ export interface User {
   jobTitle?: string;
   location?: string;
   skills: string[];
+  certifications?: string[]; 
+  projects?: Project[]; // Added field
   bio: string;
   interests: string[];
   mentorshipTopics?: string[];
@@ -34,6 +46,9 @@ export interface User {
     showEmail: boolean;
     showCompany: boolean;
     showSocials: boolean;
+  };
+  preferences?: {
+    analysisReminder?: boolean; // Added field
   };
 }
 
@@ -60,12 +75,14 @@ export interface Job {
   id: string;
   title: string;
   company: string;
+  companyLogo?: string;
   location: string;
   type: 'Full-time' | 'Internship' | 'Part-time' | 'Contract';
   postedDate: string;
   description: string;
   requirements: string[];
-  postedByAlumniId?: string; // Optional link to an alumni poster
+  postedByAlumniId?: string; 
+  applicationUrl?: string;
 }
 
 export interface JobMatch {

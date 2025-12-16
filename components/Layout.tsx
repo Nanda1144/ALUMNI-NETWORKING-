@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { User } from '../types';
+
+import React, { useState, useMemo } from 'react';
+import { User, UserRole } from '../types';
 import { 
   LayoutDashboard, 
   Users, 
@@ -18,19 +19,29 @@ interface LayoutProps {
   user: User;
   currentTab: string;
   onTabChange: (tab: string) => void;
+  onLogout: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange, onLogout }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'profile', label: 'My Profile', icon: UserCircle },
-    { id: 'directory', label: 'Alumni Directory', icon: Users },
-    { id: 'mentorship', label: 'Mentorship', icon: GraduationCap },
-    { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase },
-  ];
+  const navItems = useMemo(() => {
+    const items = [
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
+      { id: 'profile', label: 'My Profile', icon: UserCircle, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
+      { 
+        id: 'directory', 
+        label: user.role === UserRole.STUDENT ? 'Find Alumni' : (user.role === UserRole.ALUMNI ? 'Find Talent' : 'User Directory'), 
+        icon: Users, 
+        roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] 
+      },
+      { id: 'mentorship', label: 'Mentorship', icon: GraduationCap, roles: [UserRole.STUDENT] },
+      { id: 'events', label: 'Events', icon: Calendar, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
+      { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase, roles: [UserRole.STUDENT, UserRole.ALUMNI] },
+    ];
+
+    return items.filter(item => item.roles.includes(user.role));
+  }, [user.role]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -71,7 +82,10 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
             <Settings className="w-5 h-5" />
             <span className="font-medium">Settings</span>
           </button>
-          <button className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-slate-800 rounded-lg transition-colors mt-1">
+          <button 
+            onClick={onLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-400 hover:text-red-300 hover:bg-slate-800 rounded-lg transition-colors mt-1"
+          >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Logout</span>
           </button>
@@ -108,6 +122,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
                 {item.label}
               </button>
             ))}
+             <button
+                onClick={() => {
+                  onLogout();
+                  setIsMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-lg text-lg text-red-400"
+              >
+                <LogOut className="w-6 h-6" />
+                Logout
+              </button>
           </nav>
         </div>
       )}

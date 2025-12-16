@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { User, MentorshipMatch, Job, JobMatch, Event, EventMatch } from '../types';
 
@@ -8,7 +9,8 @@ const ai = new GoogleGenAI({ apiKey });
 export const generateMentorshipMatches = async (
   student: User,
   alumni: User[],
-  focusArea?: string
+  focusArea?: string,
+  preferences?: { communication?: string; availability?: string }
 ): Promise<MentorshipMatch[]> => {
   if (!apiKey) {
     console.error("API Key missing");
@@ -23,7 +25,8 @@ export const generateMentorshipMatches = async (
     skills: a.skills,
     interests: a.interests,
     mentorshipTopics: a.mentorshipTopics,
-    bio: a.bio
+    bio: a.bio,
+    location: a.location
   }));
 
   const studentContext = {
@@ -32,7 +35,9 @@ export const generateMentorshipMatches = async (
     skills: student.skills,
     interests: student.interests,
     bio: student.bio,
-    requestedFocus: focusArea || "General Career Advice"
+    requestedFocus: focusArea || "General Career Advice",
+    preferredCommunication: preferences?.communication || "Flexible",
+    preferredAvailability: preferences?.availability || "Flexible"
   };
 
   try {
@@ -43,7 +48,13 @@ export const generateMentorshipMatches = async (
         Analyze the following student profile and list of alumni. 
         The student is specifically looking for help with: "${studentContext.requestedFocus}".
         
-        Prioritize alumni whose skills directly complement (e.g. they have 'Advanced React' while student has 'Basic React') or overlap (deepen knowledge) with the student's current skills (${studentContext.skills.join(', ')}).
+        Preferences:
+        - Communication Style: ${studentContext.preferredCommunication}
+        - Availability: ${studentContext.preferredAvailability}
+        
+        Prioritize alumni whose skills directly complement the student's current skills.
+        Also consider if the alumni's location or job context might fit the student's communication/availability preferences (e.g. remote workers might be better for virtual, local for in-person).
+
         Identify the top 3 best mentorship matches for this student.
         
         Student: ${JSON.stringify(studentContext)}
@@ -58,7 +69,7 @@ export const generateMentorshipMatches = async (
             properties: {
               mentorId: { type: Type.STRING },
               matchScore: { type: Type.NUMBER, description: "Score from 0 to 100" },
-              reason: { type: Type.STRING, description: "A concise explanation of why this is a good match, specifically mentioning skill overlaps or complementary expertise." },
+              reason: { type: Type.STRING, description: "A concise explanation of why this is a good match, specifically mentioning skill overlaps and fit for preferences." },
               suggestedTopics: { 
                 type: Type.ARRAY, 
                 items: { type: Type.STRING },
@@ -284,3 +295,71 @@ export const generateProfileSummary = async (user: User): Promise<string> => {
     return "Error generating summary.";
   }
 };
+
+export const syncExternalProfileData = async (user: User, platform: string, url: string): Promise<{
+    newSkills: string[];
+    newCertifications: string[];
+}> => {
+    if (!apiKey) return { newSkills: [], newCertifications: [] };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `
+                The user has linked their ${platform} profile: ${url}.
+                
+                User Context:
+                - Role: ${user.role}
+                - Department/Major: ${user.department}
+                - Job Title: ${user.jobTitle || 'N/A'}
+                - Company: ${user.company || 'N/A'}
+                - Bio: "${user.bio}"
+                - Existing Skills: ${JSON.stringify(user.skills)}
+                
+                Task:
+                Simulate a data sync. Identify MISSING, high-value technical skills and certifications that are strongly implied by the user's background.
+                
+                Strict Guidelines for Accuracy:
+                1. **Correctness**: Only suggest skills that are standard for this specific role. Do not add generic or irrelevant skills (e.g., do not add 'Microsoft Word' for a Senior Engineer).
+                2. **No Hallucinations**: If the bio/role doesn't strongly imply a skill, do not invent it.
+                3. **Deduplication**: Do not return skills already listed in "Existing Skills".
+                4. **Limit**: Return max 5 skills and 2 certifications.
+                
+                Return JSON only.
+            `,
+            config: {
+                temperature: 0.1, // Very low temperature for high accuracy and consistency
+                maxOutputTokens: 4000, // Increased significantly to prevent JSON truncation
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        newSkills: { 
+                            type: Type.ARRAY, 
+                            items: { type: Type.STRING },
+                            description: "Accurate, missing technical skills."
+                        },
+                        newCertifications: {
+                             type: Type.ARRAY, 
+                            items: { type: Type.STRING },
+                            description: "Relevant professional certifications."
+                        }
+                    },
+                    required: ["newSkills", "newCertifications"]
+                }
+            }
+        });
+        
+        let text = response.text;
+        if (!text) return { newSkills: [], newCertifications: [] };
+
+        // Robust cleanup: remove any Markdown code blocks that might have leaked in
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        
+        return JSON.parse(text);
+
+    } catch (e) {
+        console.error("Sync failed", e);
+        return { newSkills: [], newCertifications: [] };
+    }
+}

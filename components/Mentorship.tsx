@@ -1,8 +1,9 @@
+
 import React, { useState, useCallback } from 'react';
 import { User, MentorshipMatch, UserRole } from '../types';
 import { MOCK_USERS } from '../constants';
 import { generateMentorshipMatches } from '../services/geminiService';
-import { Sparkles, ArrowRight, MessageSquare, BrainCircuit, Target } from 'lucide-react';
+import { Sparkles, ArrowRight, MessageSquare, BrainCircuit, Target, Video, Clock } from 'lucide-react';
 
 interface MentorshipProps {
   currentUser: User;
@@ -12,6 +13,8 @@ const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
   const [matches, setMatches] = useState<MentorshipMatch[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusArea, setFocusArea] = useState('');
+  const [commPreference, setCommPreference] = useState('Video Call');
+  const [availability, setAvailability] = useState('Weekdays');
 
   const handleFindMentors = useCallback(async () => {
     if (loading) return;
@@ -20,37 +23,76 @@ const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
     // Filter alumni only
     const potentialMentors = MOCK_USERS.filter(u => u.role === UserRole.ALUMNI);
     
-    const results = await generateMentorshipMatches(currentUser, potentialMentors, focusArea);
+    const results = await generateMentorshipMatches(
+        currentUser, 
+        potentialMentors, 
+        focusArea,
+        { communication: commPreference, availability: availability }
+    );
     setMatches(results);
     setLoading(false);
-  }, [currentUser, loading, focusArea]);
+  }, [currentUser, loading, focusArea, commPreference, availability]);
 
   const getMentorDetails = (id: string) => MOCK_USERS.find(u => u.id === id);
 
   return (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-8 text-white relative overflow-hidden shadow-lg">
-        <div className="relative z-10 max-w-2xl">
+        <div className="relative z-10 max-w-3xl">
           <h2 className="text-3xl font-bold mb-4 flex items-center gap-2">
             <BrainCircuit className="w-8 h-8" />
             AI Mentorship Matching
           </h2>
           <p className="text-indigo-100 mb-6 text-lg">
-            Leverage Gemini AI to analyze your skills and find the perfect alumni mentor.
+            Leverage Gemini AI to analyze your skills and preferences to find the perfect alumni mentor.
           </p>
 
-          <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 mb-6">
-            <label className="block text-sm font-medium text-indigo-100 mb-2 flex items-center gap-2">
-              <Target className="w-4 h-4" />
-              What is your specific goal? (Optional)
-            </label>
-            <input 
-              type="text" 
-              value={focusArea}
-              onChange={(e) => setFocusArea(e.target.value)}
-              placeholder="e.g. Preparing for technical interviews, exploring product management, etc."
-              className="w-full px-4 py-2 bg-white/20 border border-indigo-400/30 rounded-lg text-white placeholder-indigo-200 focus:outline-none focus:ring-2 focus:ring-white/50"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 md:col-span-2">
+                <label className="block text-sm font-medium text-indigo-100 mb-2 flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                What is your specific goal? (Optional)
+                </label>
+                <input 
+                type="text" 
+                value={focusArea}
+                onChange={(e) => setFocusArea(e.target.value)}
+                placeholder="e.g. Preparing for technical interviews, exploring product management..."
+                className="w-full px-4 py-2 bg-white/20 border border-indigo-400/30 rounded-lg text-white placeholder-indigo-200 focus:outline-none focus:ring-2 focus:ring-white/50"
+                />
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+                <label className="block text-sm font-medium text-indigo-100 mb-2 flex items-center gap-2">
+                    <Video className="w-4 h-4" /> Preferred Communication
+                </label>
+                <select 
+                    value={commPreference}
+                    onChange={(e) => setCommPreference(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/20 border border-indigo-400/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-900"
+                >
+                    <option value="Video Call">Video Call</option>
+                    <option value="In-Person">In-Person</option>
+                    <option value="Email/Chat">Email/Chat</option>
+                    <option value="Flexible">Flexible</option>
+                </select>
+            </div>
+
+            <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20">
+                <label className="block text-sm font-medium text-indigo-100 mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Availability
+                </label>
+                <select 
+                    value={availability}
+                    onChange={(e) => setAvailability(e.target.value)}
+                    className="w-full px-4 py-2 bg-white/20 border border-indigo-400/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-white/50 [&>option]:text-slate-900"
+                >
+                    <option value="Weekdays">Weekdays</option>
+                    <option value="Weekends">Weekends</option>
+                    <option value="Evenings">Evenings</option>
+                    <option value="Flexible">Flexible</option>
+                </select>
+            </div>
           </div>
 
           <button
@@ -142,7 +184,7 @@ const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
           </div>
           <h3 className="text-lg font-medium text-slate-900">Ready to Connect?</h3>
           <p className="text-slate-500 max-w-md mx-auto mt-2">
-            Our AI analyzes thousands of alumni profiles to find mentors who align with your specific career trajectory and interests.
+            Our AI analyzes thousands of alumni profiles to find mentors who align with your specific career trajectory, preferred communication style, and availability.
           </p>
         </div>
       )}

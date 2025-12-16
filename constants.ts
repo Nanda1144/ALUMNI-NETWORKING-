@@ -1,3 +1,4 @@
+
 import { User, UserRole, Event, Job } from './types';
 
 export const MOCK_USERS: User[] = [
@@ -13,6 +14,7 @@ export const MOCK_USERS: User[] = [
     jobTitle: 'Senior Software Engineer',
     location: 'San Francisco, CA',
     skills: ['React', 'TypeScript', 'System Design', 'Cloud Architecture'],
+    certifications: ['AWS Certified Solutions Architect', 'Google Cloud Professional Cloud Architect'],
     bio: 'Passionate about scalable systems and mentoring junior devs.',
     interests: ['AI/ML', 'Women in Tech', 'Startups'],
     mentorshipTopics: ['Technical Interview Prep', 'System Design', 'Career Growth'],
@@ -38,6 +40,7 @@ export const MOCK_USERS: User[] = [
     jobTitle: 'Investment Banker',
     location: 'New York, NY',
     skills: ['Financial Modeling', 'Mergers & Acquisitions', 'Leadership'],
+    certifications: ['CFA Level III', 'Financial Risk Manager (FRM)'],
     bio: 'Experienced in high-stakes finance and corporate strategy.',
     interests: ['Fintech', 'Angel Investing', 'Economics'],
     mentorshipTopics: ['Breaking into Finance', 'MBA Advice', 'Networking'],
@@ -62,6 +65,7 @@ export const MOCK_USERS: User[] = [
     jobTitle: 'Product Designer',
     location: 'Remote',
     skills: ['UI/UX', 'Figma', 'User Research', 'Prototyping'],
+    certifications: ['Google UX Design Certificate'],
     bio: 'Creating user-centric digital experiences.',
     interests: ['Design Systems', 'Accessibility', 'Digital Art'],
     mentorshipTopics: ['Portfolio Review', 'UX Research', 'Remote Work'],
@@ -83,6 +87,7 @@ export const MOCK_USERS: User[] = [
     jobTitle: 'Research Scientist',
     location: 'Boston, MA',
     skills: ['Data Analysis', 'Clinical Trials', 'Python', 'Bioinformatics'],
+    certifications: [],
     bio: 'Working on the next generation of cancer therapies.',
     interests: ['Healthcare', 'Running', 'Science Communication'],
     mentorshipTopics: ['PhD vs Industry', 'Biotech Trends', 'Grant Writing'],
@@ -101,12 +106,76 @@ export const MOCK_USERS: User[] = [
     department: 'Computer Science',
     graduationYear: 2025,
     skills: ['JavaScript', 'Python', 'Basic React'],
+    certifications: ['Meta Front-End Developer Certificate'],
     bio: 'Junior CS student looking for internship opportunities in Big Tech.',
+    projects: [
+        {
+            id: 'p1',
+            title: 'Campus Marketplace App',
+            description: 'A React Native mobile app for students to buy and sell textbooks locally.',
+            technologies: ['React Native', 'Firebase', 'Redux'],
+            link: 'github.com/davidkim/market',
+            imageUrl: 'https://picsum.photos/seed/p1/300/200'
+        },
+        {
+            id: 'p2',
+            title: 'Algorithm Visualizer',
+            description: 'Interactive web app to visualize sorting and pathfinding algorithms.',
+            technologies: ['JavaScript', 'HTML5 Canvas', 'CSS'],
+            link: 'davidkim.dev/algo',
+            imageUrl: 'https://picsum.photos/seed/p2/300/200'
+        }
+    ],
     interests: ['Web Development', 'Hackathons', 'Career Growth'],
     socialLinks: {
       github: 'github.com/davidkim-dev',
       linkedin: 'linkedin.com/in/davidkim'
     },
+    privacySettings: {
+      showEmail: true,
+      showCompany: true,
+      showSocials: true
+    }
+  },
+  {
+    id: 'u6',
+    name: 'Emily Davis',
+    role: UserRole.STUDENT,
+    email: 'emily.d@university.edu',
+    avatar: 'https://picsum.photos/seed/emily/200/200',
+    department: 'Business Administration',
+    graduationYear: 2024,
+    skills: ['Marketing', 'Public Speaking', 'Excel'],
+    certifications: ['Google Digital Garage'],
+    bio: 'Business student passionate about social entrepreneurship.',
+    projects: [
+        {
+            id: 'p3',
+            title: 'Eco-Friendly Campus Initiative',
+            description: 'Led a team of 10 to implement recycling programs in 5 dorms.',
+            technologies: ['Project Management', 'Sustainability'],
+            imageUrl: 'https://picsum.photos/seed/p3/300/200'
+        }
+    ],
+    interests: ['Marketing', 'Social Impact', 'Startups'],
+    privacySettings: {
+      showEmail: true,
+      showCompany: false,
+      showSocials: true
+    }
+  },
+  {
+    id: 'admin1',
+    name: 'Admin User',
+    role: UserRole.ADMIN,
+    email: 'admin@alumnexus.edu',
+    avatar: 'https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff',
+    department: 'Administration',
+    graduationYear: 0,
+    skills: ['Management', 'Platform Admin'],
+    certifications: [],
+    bio: 'System Administrator.',
+    interests: [],
     privacySettings: {
       showEmail: true,
       showCompany: true,
@@ -156,43 +225,51 @@ export const MOCK_JOBS: Job[] = [
     id: 'j1',
     title: 'Frontend Engineer Intern',
     company: 'TechCorp',
+    companyLogo: 'https://logo.clearbit.com/techcorp.com', // fallback will be used if not found
     location: 'San Francisco, CA',
     type: 'Internship',
     postedDate: '2 days ago',
-    description: 'We are looking for a passionate frontend intern to join our product team.',
+    description: '<p>We are looking for a <strong>passionate frontend intern</strong> to join our product team.</p><p>You will be working on:</p><ul><li>Building reusable components</li><li>Optimizing web performance</li><li>Collaborating with designers</li></ul>',
     requirements: ['React', 'JavaScript', 'HTML/CSS'],
-    postedByAlumniId: 'u1'
+    postedByAlumniId: 'u1',
+    applicationUrl: 'https://www.linkedin.com/jobs/view/123456789'
   },
   {
     id: 'j2',
     title: 'Associate Product Designer',
     company: 'Creative Studios',
+    companyLogo: 'https://logo.clearbit.com/adobe.com',
     location: 'Remote',
     type: 'Full-time',
     postedDate: '1 week ago',
-    description: 'Join our award-winning design team to build next-gen mobile apps.',
+    description: '<p>Join our <em>award-winning</em> design team to build next-gen mobile apps.</p><p>We value creativity and user-centric design.</p>',
     requirements: ['Figma', 'UI Design', 'Communication'],
-    postedByAlumniId: 'u3'
+    postedByAlumniId: 'u3',
+    applicationUrl: 'https://www.linkedin.com/jobs'
   },
   {
     id: 'j3',
     title: 'Junior Data Analyst',
     company: 'FinData',
+    companyLogo: 'https://logo.clearbit.com/goldmansachs.com',
     location: 'New York, NY',
     type: 'Full-time',
     postedDate: '3 days ago',
-    description: 'Analyze market trends and help drive business decisions.',
+    description: 'Analyze market trends and help drive business decisions. <br/><br/><strong>Key Responsibilities:</strong><br/>- Data mining<br/>- Reporting<br/>- Visualization',
     requirements: ['SQL', 'Excel', 'Python'],
-    postedByAlumniId: 'u2'
+    postedByAlumniId: 'u2',
+    applicationUrl: 'https://www.linkedin.com/jobs'
   },
   {
     id: 'j4',
     title: 'Software Engineering Resident',
     company: 'Google',
+    companyLogo: 'https://logo.clearbit.com/google.com',
     location: 'Mountain View, CA',
     type: 'Full-time',
     postedDate: 'Just now',
-    description: 'A residency program designed to bridge the gap between academia and industry.',
+    description: '<p>A residency program designed to bridge the gap between academia and industry. You will receive <b>mentorship</b> and training.</p>',
     requirements: ['Computer Science Degree', 'Java or C++', 'Algorithms'],
+    applicationUrl: 'https://careers.google.com'
   }
 ];
