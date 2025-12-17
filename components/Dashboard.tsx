@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -11,7 +12,12 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { Users, Calendar, Award, Briefcase } from 'lucide-react';
+import { Users, Calendar, Award, Briefcase, GraduationCap } from 'lucide-react';
+import { User, UserRole } from '../types';
+
+interface DashboardProps {
+  users?: User[];
+}
 
 const dataEngagement = [
   { name: 'Jan', active: 400 },
@@ -31,7 +37,7 @@ const dataIndustry = [
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ec4899'];
 
-const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: string, icon: any, color: string }) => (
+const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: string | number, icon: any, color: string }) => (
   <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 flex items-center space-x-4">
     <div className={`p-3 rounded-lg ${color}`}>
       <Icon className="w-6 h-6 text-white" />
@@ -43,13 +49,21 @@ const StatCard = ({ title, value, icon: Icon, color }: { title: string, value: s
   </div>
 );
 
-const Dashboard: React.FC = () => {
+const Dashboard: React.FC<DashboardProps> = ({ users = [] }) => {
+  // Calculate dynamic stats
+  const alumniCount = useMemo(() => users.filter(u => u.role === UserRole.ALUMNI).length, [users]);
+  const studentCount = useMemo(() => users.filter(u => u.role === UserRole.STUDENT).length, [users]);
+
+  // For visual demo purposes, if no users passed (e.g. initial load), use fallback
+  const displayAlumni = alumniCount > 0 ? alumniCount : 12450; 
+  const displayStudents = studentCount > 0 ? studentCount : 8500;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Alumni" value="12,450" icon={Users} color="bg-indigo-600" />
+        <StatCard title="Total Alumni" value={displayAlumni} icon={Users} color="bg-indigo-600" />
+        <StatCard title="Active Students" value={displayStudents} icon={GraduationCap} color="bg-blue-500" />
         <StatCard title="Events This Month" value="8" icon={Calendar} color="bg-emerald-500" />
-        <StatCard title="Mentorships Active" value="1,204" icon={Award} color="bg-amber-500" />
         <StatCard title="Jobs Posted" value="45" icon={Briefcase} color="bg-pink-500" />
       </div>
 

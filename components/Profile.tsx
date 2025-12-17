@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User } from '../types';
 import { analyzeProfileImprovements, generateProfileSummary, syncExternalProfileData } from '../services/geminiService';
-import { Sparkles, Edit2, AlertCircle, CheckCircle, Save, X, Brain, Download, Github, Linkedin, Twitter, Globe, Lock, Eye, EyeOff, Search, FileText, RefreshCw, Award, ArrowLeft, FolderGit2, ExternalLink, CalendarClock } from 'lucide-react';
+import { Sparkles, Edit2, AlertCircle, CheckCircle, Save, X, Brain, Download, Github, Linkedin, Twitter, Globe, Lock, Eye, EyeOff, Search, FileText, RefreshCw, Award, ArrowLeft, FolderGit2, ExternalLink, CalendarClock, Fingerprint } from 'lucide-react';
 import { jsPDF } from "jspdf";
 
 interface ProfileProps {
@@ -298,6 +298,12 @@ const Profile: React.FC<ProfileProps> = ({ user, onNavigateToDirectory, isReadOn
             ) : (
               <p className="text-slate-600 font-medium">{formData.jobTitle || formData.role} {formData.company && `• ${formData.company}`} • Class of {formData.graduationYear}</p>
             )}
+
+            {/* Unique ID Display */}
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-md border border-slate-200 text-xs font-mono text-slate-600" title="This is your unique platform ID">
+                <Fingerprint className="w-3.5 h-3.5" />
+                <span>ID: {formData.id}</span>
+            </div>
           </div>
           
           <div className="flex gap-2 mb-2">

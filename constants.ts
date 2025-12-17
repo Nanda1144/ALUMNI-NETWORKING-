@@ -1,5 +1,5 @@
 
-import { User, UserRole, Event, Job } from './types';
+import { User, UserRole, Event, Job, Feedback } from './types';
 
 export const MOCK_USERS: User[] = [
   {
@@ -181,6 +181,24 @@ export const MOCK_USERS: User[] = [
       showCompany: true,
       showSocials: true
     }
+  },
+  // THE CREATOR
+  {
+    id: 'creator1',
+    name: 'Project Creator',
+    role: UserRole.CREATOR,
+    email: 'creater@alumni.com', // As requested
+    avatar: 'https://ui-avatars.com/api/?name=Project+Creator&background=000&color=fff',
+    department: 'Product',
+    graduationYear: 0,
+    skills: ['Full Stack', 'Product Vision', 'AI'],
+    bio: 'I build things.',
+    interests: [],
+    privacySettings: {
+        showEmail: true,
+        showCompany: true,
+        showSocials: true
+    }
   }
 ];
 
@@ -225,7 +243,7 @@ export const MOCK_JOBS: Job[] = [
     id: 'j1',
     title: 'Frontend Engineer Intern',
     company: 'TechCorp',
-    companyLogo: 'https://logo.clearbit.com/techcorp.com', // fallback will be used if not found
+    companyLogo: 'https://logo.clearbit.com/techcorp.com',
     location: 'San Francisco, CA',
     type: 'Internship',
     postedDate: '2 days ago',
@@ -272,4 +290,47 @@ export const MOCK_JOBS: Job[] = [
     requirements: ['Computer Science Degree', 'Java or C++', 'Algorithms'],
     applicationUrl: 'https://careers.google.com'
   }
+];
+
+export const MOCK_FEEDBACK: Feedback[] = [
+    {
+        id: 'f1',
+        userId: 'u5',
+        userName: 'David Kim',
+        userRole: UserRole.STUDENT,
+        rating: 5,
+        category: 'Feature',
+        comment: 'The mentorship matching AI is incredible! Found a mentor in 2 days.',
+        date: '2024-05-10'
+    },
+    {
+        id: 'f2',
+        userId: 'u1',
+        userName: 'Sarah Chen',
+        userRole: UserRole.ALUMNI,
+        rating: 4,
+        category: 'Content',
+        comment: 'Great platform. Would love to see more events in the Bay Area.',
+        date: '2024-05-12'
+    },
+    {
+        id: 'f3',
+        userId: 'u6',
+        userName: 'Emily Davis',
+        userRole: UserRole.STUDENT,
+        rating: 3,
+        category: 'Bug',
+        comment: 'Mobile menu sometimes closes when I scroll too fast.',
+        date: '2024-05-15'
+    },
+    {
+        id: 'f4',
+        userId: 'u2',
+        userName: 'James Wilson',
+        userRole: UserRole.ALUMNI,
+        rating: 5,
+        category: 'Feature',
+        comment: 'Posting jobs is very seamless. The analytics on who viewed it would be nice.',
+        date: '2024-05-18'
+    }
 ];

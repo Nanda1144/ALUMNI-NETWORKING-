@@ -1,15 +1,15 @@
 
 import React, { useState, useCallback } from 'react';
 import { User, MentorshipMatch, UserRole } from '../types';
-import { MOCK_USERS } from '../constants';
 import { generateMentorshipMatches } from '../services/geminiService';
 import { Sparkles, ArrowRight, MessageSquare, BrainCircuit, Target, Video, Clock } from 'lucide-react';
 
 interface MentorshipProps {
   currentUser: User;
+  users: User[];
 }
 
-const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
+const Mentorship: React.FC<MentorshipProps> = ({ currentUser, users }) => {
   const [matches, setMatches] = useState<MentorshipMatch[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [focusArea, setFocusArea] = useState('');
@@ -20,8 +20,8 @@ const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
     if (loading) return;
     setLoading(true);
     
-    // Filter alumni only
-    const potentialMentors = MOCK_USERS.filter(u => u.role === UserRole.ALUMNI);
+    // Filter alumni only from the dynamic users list
+    const potentialMentors = users.filter(u => u.role === UserRole.ALUMNI);
     
     const results = await generateMentorshipMatches(
         currentUser, 
@@ -31,9 +31,9 @@ const Mentorship: React.FC<MentorshipProps> = ({ currentUser }) => {
     );
     setMatches(results);
     setLoading(false);
-  }, [currentUser, loading, focusArea, commPreference, availability]);
+  }, [currentUser, loading, focusArea, commPreference, availability, users]);
 
-  const getMentorDetails = (id: string) => MOCK_USERS.find(u => u.id === id);
+  const getMentorDetails = (id: string) => users.find(u => u.id === id);
 
   return (
     <div className="space-y-6">

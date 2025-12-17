@@ -2,7 +2,8 @@
 export enum UserRole {
   ALUMNI = 'ALUMNI',
   STUDENT = 'STUDENT',
-  ADMIN = 'ADMIN'
+  ADMIN = 'ADMIN',
+  CREATOR = 'CREATOR' // New Role
 }
 
 export interface Skill {
@@ -19,6 +20,17 @@ export interface Project {
   imageUrl?: string;
 }
 
+export interface Feedback {
+  id: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  rating: number; // 1-5
+  category: 'Bug' | 'Feature' | 'Content' | 'Other';
+  comment: string;
+  date: string;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -32,7 +44,7 @@ export interface User {
   location?: string;
   skills: string[];
   certifications?: string[]; 
-  projects?: Project[]; // Added field
+  projects?: Project[]; 
   bio: string;
   interests: string[];
   mentorshipTopics?: string[];
@@ -48,7 +60,7 @@ export interface User {
     showSocials: boolean;
   };
   preferences?: {
-    analysisReminder?: boolean; // Added field
+    analysisReminder?: boolean; 
   };
 }
 
@@ -83,6 +95,7 @@ export interface Job {
   requirements: string[];
   postedByAlumniId?: string; 
   applicationUrl?: string;
+  isAiGenerated?: boolean; // Track if created by AI
 }
 
 export interface JobMatch {

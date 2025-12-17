@@ -11,7 +11,9 @@ import {
   Menu,
   X,
   GraduationCap,
-  UserCircle
+  UserCircle,
+  MessageSquarePlus,
+  Star
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -20,24 +22,93 @@ interface LayoutProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
+  onFeedbackSubmit?: (rating: number, category: string, comment: string) => void; // New prop
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange, onLogout }) => {
+const FeedbackModal = ({ onClose, onSubmit }: { onClose: () => void, onSubmit: (r: number, cat: string, com: string) => void }) => {
+    const [rating, setRating] = useState(5);
+    const [category, setCategory] = useState('Feature');
+    const [comment, setComment] = useState('');
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        onSubmit(rating, category, comment);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-900">Give Feedback</h3>
+                    <button onClick={onClose}><X className="w-6 h-6 text-slate-400 hover:text-slate-600" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Rating</label>
+                        <div className="flex gap-2">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                                <button
+                                    key={star}
+                                    type="button"
+                                    onClick={() => setRating(star)}
+                                    className={`p-1 transition-transform hover:scale-110 ${rating >= star ? 'text-yellow-400' : 'text-slate-300'}`}
+                                >
+                                    <Star className="w-8 h-8 fill-current" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                        <select 
+                            value={category} 
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        >
+                            <option value="Feature">Feature Request</option>
+                            <option value="Bug">Report a Bug</option>
+                            <option value="Content">Content Issue</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-1">Comments</label>
+                        <textarea 
+                            required
+                            rows={4}
+                            value={comment}
+                            onChange={(e) => setComment(e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Tell us what you think..."
+                        />
+                    </div>
+                    <button type="submit" className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
+                        Submit Feedback
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange, onLogout, onFeedbackSubmit }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   const navItems = useMemo(() => {
     const items = [
-      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
-      { id: 'profile', label: 'My Profile', icon: UserCircle, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN, UserRole.CREATOR] },
+      { id: 'profile', label: 'My Profile', icon: UserCircle, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN, UserRole.CREATOR] },
       { 
         id: 'directory', 
         label: user.role === UserRole.STUDENT ? 'Find Alumni' : (user.role === UserRole.ALUMNI ? 'Find Talent' : 'User Directory'), 
         icon: Users, 
-        roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] 
+        roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN, UserRole.CREATOR] 
       },
       { id: 'mentorship', label: 'Mentorship', icon: GraduationCap, roles: [UserRole.STUDENT] },
-      { id: 'events', label: 'Events', icon: Calendar, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN] },
-      { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase, roles: [UserRole.STUDENT, UserRole.ALUMNI] },
+      { id: 'events', label: 'Events', icon: Calendar, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.ADMIN, UserRole.CREATOR] },
+      { id: 'jobs', label: 'Jobs & Internships', icon: Briefcase, roles: [UserRole.STUDENT, UserRole.ALUMNI, UserRole.CREATOR] },
     ];
 
     return items.filter(item => item.roles.includes(user.role));
@@ -45,6 +116,13 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
+      {showFeedback && onFeedbackSubmit && (
+          <FeedbackModal 
+            onClose={() => setShowFeedback(false)} 
+            onSubmit={onFeedbackSubmit} 
+          />
+      )}
+
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-900 text-white fixed h-full z-20">
         <div className="p-6 border-b border-slate-800">
@@ -78,6 +156,17 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
         </nav>
 
         <div className="p-4 border-t border-slate-800">
+          {/* Feedback Button for Non-Creators */}
+          {user.role !== UserRole.CREATOR && (
+               <button 
+                onClick={() => setShowFeedback(true)}
+                className="w-full flex items-center gap-3 px-4 py-3 text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 rounded-lg transition-colors mb-2"
+               >
+                 <MessageSquarePlus className="w-5 h-5" />
+                 <span className="font-medium">Give Feedback</span>
+               </button>
+          )}
+
           <button className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
             <Settings className="w-5 h-5" />
             <span className="font-medium">Settings</span>

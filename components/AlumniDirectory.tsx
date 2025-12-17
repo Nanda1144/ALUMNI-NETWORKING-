@@ -1,16 +1,16 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserRole } from '../types';
-import { MOCK_USERS } from '../constants';
 import { Search, MapPin, Briefcase, GraduationCap, Mail, Building2, Trash2 } from 'lucide-react';
 
 interface AlumniDirectoryProps {
   initialSearch?: string;
   currentUser: User;
   onViewProfile?: (user: User) => void;
+  users: User[]; // Accepts dynamic list of users
 }
 
-const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', currentUser, onViewProfile }) => {
+const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', currentUser, onViewProfile, users }) => {
   const [searchTerm, setSearchTerm] = useState(initialSearch);
   const [selectedIndustry, setSelectedIndustry] = useState<string>('All');
 
@@ -22,15 +22,15 @@ const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', c
   const targetUsers = useMemo(() => {
     if (currentUser.role === UserRole.STUDENT) {
       // Students want to find Alumni
-      return MOCK_USERS.filter(u => u.role === UserRole.ALUMNI);
+      return users.filter(u => u.role === UserRole.ALUMNI);
     } else if (currentUser.role === UserRole.ALUMNI) {
       // Alumni/Companies want to find Students (Talent)
-      return MOCK_USERS.filter(u => u.role === UserRole.STUDENT);
+      return users.filter(u => u.role === UserRole.STUDENT);
     } else {
       // Admins see everyone
-      return MOCK_USERS.filter(u => u.id !== currentUser.id);
+      return users.filter(u => u.id !== currentUser.id);
     }
-  }, [currentUser]);
+  }, [currentUser, users]);
 
   const filteredUsers = useMemo(() => {
     return targetUsers.filter(user => {
@@ -113,10 +113,10 @@ const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', c
                   {user.role === UserRole.ALUMNI ? (
                     <>
                       <p className="text-slate-500 text-sm flex items-center gap-1 mt-1">
-                        <Briefcase className="w-3 h-3" /> {user.jobTitle}
+                        <Briefcase className="w-3 h-3" /> {user.jobTitle || 'Alumni'}
                       </p>
                       <p className="text-slate-500 text-sm flex items-center gap-1">
-                        <span className="font-semibold text-slate-700">@{user.company}</span>
+                        <span className="font-semibold text-slate-700">@{user.company || 'Unknown'}</span>
                       </p>
                     </>
                   ) : (
@@ -130,7 +130,7 @@ const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', c
               <div className="mt-4 space-y-2">
                  <p className="text-slate-500 text-xs flex items-center gap-2">
                     <Building2 className="w-3.5 h-3.5" /> 
-                    {user.department} • Class of {user.graduationYear}
+                    {user.department || 'General'} • Class of {user.graduationYear}
                   </p>
                   {user.location && (
                     <p className="text-slate-500 text-xs flex items-center gap-2">
@@ -141,11 +141,12 @@ const AlumniDirectory: React.FC<AlumniDirectoryProps> = ({ initialSearch = '', c
               </div>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {user.skills.slice(0, 3).map((skill) => (
+                {user.skills.length > 0 ? user.skills.slice(0, 3).map((skill) => (
                   <span key={skill} className="px-2 py-1 bg-slate-100 text-slate-600 text-xs rounded-md">
                     {skill}
                   </span>
-                ))}
+                )) : <span className="text-xs text-slate-400 italic">No skills added</span>}
+                
                 {user.skills.length > 3 && (
                   <span className="px-2 py-1 bg-slate-100 text-slate-500 text-xs rounded-md">
                     +{user.skills.length - 3}

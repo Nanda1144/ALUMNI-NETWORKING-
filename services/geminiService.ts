@@ -329,7 +329,7 @@ export const syncExternalProfileData = async (user: User, platform: string, url:
             `,
             config: {
                 temperature: 0.1, // Very low temperature for high accuracy and consistency
-                maxOutputTokens: 4000, // Increased significantly to prevent JSON truncation
+                maxOutputTokens: 4000, 
                 responseMimeType: "application/json",
                 responseSchema: {
                     type: Type.OBJECT,
@@ -361,5 +361,63 @@ export const syncExternalProfileData = async (user: User, platform: string, url:
     } catch (e) {
         console.error("Sync failed", e);
         return { newSkills: [], newCertifications: [] };
+    }
+};
+
+export const generateSyntheticJobs = async (currentJobs: Job[]): Promise<Job[]> => {
+    if (!apiKey) return [];
+
+    const sampleJob = currentJobs[0];
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `
+                Act as an AI job market aggregator.
+                Generate 2 NEW, realistic, high-quality job postings for the current tech/business market.
+                These should look like they were scraped from top company career pages.
+                
+                Ensure diversity in roles (e.g., one Engineering, one Marketing or Data).
+                
+                Return JSON only.
+            `,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            title: { type: Type.STRING },
+                            company: { type: Type.STRING },
+                            location: { type: Type.STRING },
+                            type: { type: Type.STRING, enum: ['Full-time', 'Internship', 'Part-time', 'Contract'] },
+                            description: { type: Type.STRING, description: "HTML string with <p> and <ul>" },
+                            requirements: { type: Type.ARRAY, items: { type: Type.STRING } },
+                            applicationUrl: { type: Type.STRING }
+                        },
+                        required: ["title", "company", "location", "type", "description", "requirements", "applicationUrl"]
+                    }
+                }
+            }
+        });
+
+        const text = response.text;
+        if (!text) return [];
+
+        const rawJobs = JSON.parse(text);
+        
+        // Map to internal Job structure
+        return rawJobs.map((j: any, i: number) => ({
+            id: `ai-job-${Date.now()}-${i}`,
+            ...j,
+            postedDate: 'Just now',
+            isAiGenerated: true,
+            companyLogo: `https://logo.clearbit.com/${j.company.replace(/\s+/g, '').toLowerCase()}.com`
+        }));
+
+    } catch (e) {
+        console.error("AI Job Generation failed", e);
+        return [];
     }
 }

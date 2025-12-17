@@ -1,12 +1,30 @@
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { User, Job, JobMatch, UserRole } from '../types';
-import { MOCK_JOBS, MOCK_USERS } from '../constants';
-import { generateJobMatches } from '../services/geminiService';
-import { Briefcase, MapPin, Sparkles, Building2, User as UserIcon, Search, ArrowUpDown, Bookmark, Linkedin, Plus, X, Image as ImageIcon, ExternalLink } from 'lucide-react';
+import { MOCK_JOBS } from '../constants';
+import { generateJobMatches, generateSyntheticJobs } from '../services/geminiService';
+import { Briefcase, MapPin, Sparkles, Building2, User as UserIcon, Search, ArrowUpDown, Bookmark, Linkedin, Plus, X, Image as ImageIcon, ExternalLink, Globe, Bot } from 'lucide-react';
 
 interface JobsProps {
   currentUser: User;
+  users: User[];
+}
+
+// Custom hook for debouncing values
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 const parseRelativeDate = (dateStr: string): number => {
@@ -162,8 +180,9 @@ const CreateJobModal = ({ onClose, onSave }: { onClose: () => void, onSave: (e: 
   );
 };
 
-const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
+const Jobs: React.FC<JobsProps> = ({ currentUser, users }) => {
   const [loading, setLoading] = useState(false);
+  const [generatingJobs, setGeneratingJobs] = useState(false);
   const [matches, setMatches] = useState<JobMatch[] | null>(null);
   const [jobs, setJobs] = useState<Job[]>(MOCK_JOBS);
   
@@ -184,7 +203,11 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
   const [expFilter, setExpFilter] = useState('All');
   const [sortBy, setSortBy] = useState<'Relevance' | 'Date'>('Date');
 
-  const canPostJob = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.ALUMNI;
+  // Debounce inputs to optimize large list filtering
+  const debouncedTechFilter = useDebounce(techFilter, 300);
+  const debouncedIndustryFilter = useDebounce(industryFilter, 300);
+
+  const canPostJob = currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.ALUMNI || currentUser.role === UserRole.CREATOR;
 
   const handleAIMatch = useCallback(async () => {
     if (loading) return;
@@ -209,6 +232,19 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
       setJobs([newJob, ...jobs]);
   };
 
+  const handleAIJobGeneration = async () => {
+      if(generatingJobs) return;
+      setGeneratingJobs(true);
+      const newJobs = await generateSyntheticJobs(jobs);
+      if(newJobs.length > 0) {
+          setJobs(prev => [...newJobs, ...prev]);
+          alert(`Success! AI found ${newJobs.length} new opportunities in the market.`);
+      } else {
+          alert("AI scan completed. No new specific matches found right now.");
+      }
+      setGeneratingJobs(false);
+  };
+
   const toggleSave = (id: string) => {
       const newSet = new Set(savedJobIds);
       if (newSet.has(id)) {
@@ -221,6 +257,7 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
 
   const getJobMatch = (jobId: string) => matches?.find(m => m.jobId === jobId);
 
+  // Memoized filter logic with debounced values
   const filteredAndSortedJobs = useMemo(() => {
     let result = [...jobs];
 
@@ -229,25 +266,25 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
         result = result.filter(job => savedJobIds.has(job.id));
     }
 
-    // Filter by Technology (in description or requirements)
-    if (techFilter) {
-        const term = techFilter.toLowerCase();
+    // Filter by Technology (Debounced)
+    if (debouncedTechFilter) {
+        const term = debouncedTechFilter.toLowerCase();
         result = result.filter(job => 
             job.requirements.some(r => r.toLowerCase().includes(term)) ||
             job.description.toLowerCase().includes(term)
         );
     }
 
-    // Filter by Industry (Company or description)
-    if (industryFilter) {
-        const term = industryFilter.toLowerCase();
+    // Filter by Industry (Debounced)
+    if (debouncedIndustryFilter) {
+        const term = debouncedIndustryFilter.toLowerCase();
         result = result.filter(job => 
             job.company.toLowerCase().includes(term) ||
             job.description.toLowerCase().includes(term)
         );
     }
 
-    // Filter by Experience Level (Heuristic based on keywords in Title/Description)
+    // Filter by Experience Level
     if (expFilter !== 'All') {
         const term = expFilter.toLowerCase();
         if (term === 'internship') {
@@ -273,13 +310,13 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
             if (scoreA !== scoreB) return scoreB - scoreA;
         }
         
-        // Date sort (Default fallback if scores equal or sortBy is Date)
+        // Date sort
         const daysA = parseRelativeDate(a.postedDate);
         const daysB = parseRelativeDate(b.postedDate);
         return daysA - daysB;
     });
 
-  }, [jobs, matches, techFilter, industryFilter, expFilter, sortBy, filterSaved, savedJobIds]);
+  }, [jobs, matches, debouncedTechFilter, debouncedIndustryFilter, expFilter, sortBy, filterSaved, savedJobIds]);
 
 
   return (
@@ -306,6 +343,18 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
                     Saved
                 </button>
             </div>
+
+            {/* AI Update Button for Alumni/Creator */}
+            {canPostJob && (
+                <button 
+                    onClick={handleAIJobGeneration}
+                    disabled={generatingJobs}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:shadow-lg transition-all shadow-sm disabled:opacity-70"
+                >
+                    {generatingJobs ? <Bot className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+                    Scan Market (AI)
+                </button>
+            )}
             
             {canPostJob && (
                 <button 
@@ -417,11 +466,15 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
       <div className="grid gap-6">
         {filteredAndSortedJobs.map((job) => {
           const match = getJobMatch(job.id);
-          const alumniPoster = job.postedByAlumniId ? MOCK_USERS.find(u => u.id === job.postedByAlumniId) : null;
+          // Look up user from the dynamic list passed via props
+          const alumniPoster = job.postedByAlumniId ? users.find(u => u.id === job.postedByAlumniId) : null;
           const isSaved = savedJobIds.has(job.id);
           const linkedinUrl = job.applicationUrl?.includes('linkedin.com') 
              ? job.applicationUrl 
              : `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(job.title + ' ' + job.company)}`;
+          
+          const isLinkedInApplication = job.applicationUrl?.toLowerCase().includes('linkedin.com');
+          const showCompanyApply = job.applicationUrl && !isLinkedInApplication;
 
           return (
             <div key={job.id} className={`bg-white rounded-xl p-6 shadow-sm border ${match ? 'border-indigo-200 ring-1 ring-indigo-100' : 'border-slate-100'} hover:shadow-md transition-all relative overflow-hidden animate-fade-in`}>
@@ -444,11 +497,14 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
 
               <div className="flex flex-col md:flex-row gap-6">
                 {/* Logo Section */}
-                <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100 overflow-hidden">
+                <div className="w-16 h-16 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100 overflow-hidden relative">
                   {job.companyLogo ? (
                       <img src={job.companyLogo} alt={job.company} className="w-full h-full object-contain p-1" />
                   ) : (
                       <Building2 className="w-8 h-8 text-slate-400" />
+                  )}
+                  {job.isAiGenerated && (
+                      <div className="absolute top-0 left-0 bg-emerald-500 text-white text-[9px] px-1 font-bold">AI</div>
                   )}
                 </div>
                 
@@ -499,7 +555,12 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
                           <UserIcon className="w-4 h-4 text-indigo-500" />
                           <span>Posted by <span className="font-medium text-slate-900">{alumniPoster.name}</span> (Alumni)</span>
                        </div>
-                    ) : <div></div>}
+                    ) : (job.isAiGenerated ? (
+                        <div className="flex items-center gap-2 text-sm text-emerald-600">
+                           <Bot className="w-4 h-4" />
+                           <span>Sourced by AI Market Scan</span>
+                        </div>
+                    ) : <div></div>)}
                     
                     <div className="flex gap-2">
                          {/* Apply via LinkedIn Button - Always visible, links to direct app or search */}
@@ -513,15 +574,16 @@ const Jobs: React.FC<JobsProps> = ({ currentUser }) => {
                             Apply via LinkedIn
                          </a>
                          
-                         {/* Apply Now Button - Direct company link if available */}
-                         {job.applicationUrl && (
+                         {/* Apply Via Company Website Button - Only if URL exists and is NOT LinkedIn */}
+                         {showCompanyApply && (
                              <a 
                                 href={job.applicationUrl}
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
                              >
-                               Apply Now
+                               <Globe className="w-4 h-4" />
+                               Apply via Company Website
                              </a>
                          )}
                     </div>
