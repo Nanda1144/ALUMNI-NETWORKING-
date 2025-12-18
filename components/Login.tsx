@@ -1,81 +1,133 @@
 
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { Shield, GraduationCap, Building2, ArrowRight, UserCheck, ArrowLeft } from 'lucide-react';
+import { Shield, GraduationCap, Building2, ArrowRight, UserCheck, ArrowLeft, Key, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface LoginProps {
   onLogin: (email: string) => void; 
   onRegister: (name: string, email: string, role: UserRole) => void;
-  onBack?: () => void; // Added back navigation prop
+  onBack?: () => void; 
 }
 
 const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
   const [role, setRole] = useState<UserRole>(UserRole.STUDENT);
   
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [resetSent, setResetSent] = useState(false);
   
   const [error, setError] = useState('');
+
+  const validatePassword = (pass: string) => {
+    if (pass.length < 8) return "Password must be at least 8 characters long.";
+    if (!/\d/.test(pass)) return "Password must include at least one number.";
+    if (!/[!@#$%^&*]/.test(pass)) return "Password must include at least one symbol (!@#$%^&*).";
+    return "";
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (authMode === 'forgot') {
+        if (!email) {
+            setError('Please enter your email address.');
+            return;
+        }
+        setResetSent(true);
+        return;
+    }
 
     if (!email || !password) {
       setError('Please fill in all fields');
       return;
     }
 
-    if (isRegistering) {
+    if (authMode === 'register') {
+        const passError = validatePassword(password);
+        if (passError) {
+            setError(passError);
+            return;
+        }
+
         if (!name) {
             setError('Please enter your name');
             return;
         }
+
+        // Domain validation for students
+        if (role === UserRole.STUDENT && !email.toLowerCase().endsWith('.edu')) {
+            setError('Students must register with a valid .edu email address.');
+            return;
+        }
+
         onRegister(name, email, role);
     } else {
-        // For login, we just pass the email. The App logic will determine the role.
         onLogin(email);
     }
   };
 
   const getRoleIcon = () => {
-    if (!isRegistering) return <UserCheck className="w-8 h-8 text-indigo-600" />;
+    if (authMode === 'login') return <UserCheck className="w-8 h-8 text-indigo-600" />;
+    if (authMode === 'forgot') return <Key className="w-8 h-8 text-indigo-600" />;
 
     switch (role) {
       case UserRole.ADMIN: return <Shield className="w-8 h-8 text-indigo-600" />;
       case UserRole.ALUMNI: return <Building2 className="w-8 h-8 text-indigo-600" />;
       case UserRole.STUDENT: return <GraduationCap className="w-8 h-8 text-indigo-600" />;
+      default: return <UserCheck className="w-8 h-8 text-indigo-600" />;
     }
   };
 
-  const getRoleDescription = () => {
-    if (!isRegistering) return "Welcome back! Please enter your credentials.";
+  const getDescription = () => {
+    if (authMode === 'forgot') return "Enter your email and we'll send you instructions to reset your password.";
+    if (authMode === 'login') return "Welcome back! Please enter your credentials.";
 
     switch (role) {
       case UserRole.ADMIN: return "Manage events, master directory, and platform settings.";
       case UserRole.ALUMNI: return "Post jobs, create events, and find student talent.";
       case UserRole.STUDENT: return "Find mentorship, jobs, events, and connect with alumni.";
+      default: return "";
     }
   };
+
+  if (resetSent) {
+      return (
+        <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-12 text-center animate-fade-in">
+                <div className="bg-emerald-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">Check your email</h2>
+                <p className="text-slate-500 mb-8">If an account exists for {email}, you will receive a password reset link shortly.</p>
+                <button 
+                    onClick={() => { setAuthMode('login'); setResetSent(false); }}
+                    className="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all"
+                >
+                    Return to Login
+                </button>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-4xl rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row min-h-[550px] relative">
         
-        {/* Back Button */}
         {onBack && (
             <button 
                 onClick={onBack}
-                className="absolute top-4 left-4 z-20 flex items-center gap-2 text-slate-400 hover:text-white md:hover:text-white hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium md:text-white"
+                className="absolute top-4 left-4 z-20 flex items-center gap-2 text-slate-400 hover:text-white px-3 py-1.5 rounded-lg transition-colors text-sm font-medium md:text-white"
             >
                 <ArrowLeft className="w-4 h-4" /> Back
             </button>
         )}
 
-        {/* Left Side - Selection */}
+        {/* Left Side */}
         <div className="md:w-2/5 bg-slate-900 text-white p-8 flex flex-col justify-between pt-16 md:pt-8">
           <div>
             <div className="flex items-center gap-2 mb-8">
@@ -83,16 +135,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
               <span className="text-xl font-bold">AlumNexus</span>
             </div>
             <h2 className="text-2xl font-bold mb-6">
-                {isRegistering ? "Create Account" : "Welcome Back"}
+                {authMode === 'register' ? "Create Account" : (authMode === 'forgot' ? "Reset Password" : "Welcome Back")}
             </h2>
-            <p className="text-slate-400 mb-6 text-sm">
-                {isRegistering 
-                    ? "Select your role to join our community." 
-                    : "Log in to access your dashboard, connect with alumni, and find opportunities."
-                }
-            </p>
             
-            {isRegistering ? (
+            {authMode === 'register' ? (
                 <div className="space-y-4 animate-fade-in">
                   <button 
                     onClick={() => setRole(UserRole.STUDENT)}
@@ -149,18 +195,18 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
               {getRoleIcon()}
             </div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
-                {isRegistering ? "Sign Up" : "Log In"}
+                {authMode === 'register' ? "Sign Up" : (authMode === 'forgot' ? "Forgot Password?" : "Log In")}
             </h1>
-            <p className="text-slate-500">{getRoleDescription()}</p>
+            <p className="text-slate-500">{getDescription()}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isRegistering && (
+            {authMode === 'register' && (
                 <div className="animate-fade-in">
                     <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
                     <input 
                         type="text"
-                        required={isRegistering}
+                        required={authMode === 'register'}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         placeholder="John Doe"
@@ -168,70 +214,63 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
                     />
                 </div>
             )}
+            
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                  {isRegistering && role === UserRole.STUDENT ? "College Email (.edu)" : "Email Address"}
+                  {authMode === 'register' && role === UserRole.STUDENT ? "College Email (.edu)" : "Email Address"}
               </label>
-              <input 
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={isRegistering && role === UserRole.STUDENT ? "name@university.edu" : "name@example.com"}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              />
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input 
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={authMode === 'register' && role === UserRole.STUDENT ? "name@university.edu" : "name@example.com"}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-              <input 
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-              />
-            </div>
+
+            {authMode !== 'forgot' && (
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-slate-700">Password</label>
+                    {authMode === 'login' && (
+                        <button type="button" onClick={() => setAuthMode('forgot')} className="text-xs font-bold text-indigo-600 hover:underline">Forgot Password?</button>
+                    )}
+                  </div>
+                  <input 
+                    type="password"
+                    required={authMode !== 'forgot'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                  />
+                  {authMode === 'register' && (
+                      <p className="text-[10px] text-slate-400 mt-1">Min 8 chars, 1 number, 1 special character.</p>
+                  )}
+                </div>
+            )}
             
             {error && (
-              <p className="text-red-500 text-sm">{error}</p>
+              <div className="bg-red-50 border border-red-100 p-3 rounded-lg flex items-start gap-2 text-red-600 text-sm animate-shake">
+                <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
             )}
 
             <button 
               type="submit"
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 flex items-center justify-center gap-2"
             >
-              {isRegistering ? "Create Account" : "Log In"}
+              {authMode === 'register' ? "Create Account" : (authMode === 'forgot' ? "Send Reset Link" : "Log In")}
               <ArrowRight className="w-5 h-5" />
             </button>
           </form>
             
           <div className="mt-6 text-center">
-              <p className="text-slate-600 text-sm">
-                  {isRegistering ? "Already have an account? " : "Don't have an account? "}
-                  <button 
-                    onClick={() => { setIsRegistering(!isRegistering); setError(''); }}
-                    className="text-indigo-600 font-bold hover:underline"
-                  >
-                      {isRegistering ? "Log In" : "Sign Up"}
-                  </button>
-              </p>
-          </div>
-
-          {!isRegistering && (
-            <div className="mt-6 pt-6 border-t border-slate-100">
-                <p className="text-center text-sm text-slate-500">
-                <span className="font-medium">Demo Credentials:</span><br/>
-                Student: david.kim@university.edu<br/>
-                Alumni: sarah.c@techcorp.com<br/>
-                Admin: admin@alumnexus.edu
-                </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Login;
+              {/* Fix: Separate forgot mode from login/register toggle to avoid redundant checks and type overlap issues */}
+              {authMode !== 'forgot' ? (
+                  <p className
