@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
@@ -21,23 +22,24 @@ const App: React.FC = () => {
   const [currentTab, setCurrentTab] = useState('dashboard');
   const [directorySearch, setDirectorySearch] = useState('');
   const [viewingProfile, setViewingProfile] = useState<User | null>(null);
-  const [isOffline, setIsOffline] = useState(false);
+  const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'checking'>('checking');
 
   const fetchUsers = async () => {
     try {
-      setIsOffline(false);
+      setDbStatus('checking');
       const response = await fetch('http://localhost:3001/api/users');
       if (response.ok) {
         const dbUsers = await response.json();
         if (dbUsers.length > 0) {
           setUsers(dbUsers);
         }
+        setDbStatus('connected');
       } else {
         throw new Error('Server unreachable');
       }
     } catch (error) {
       console.warn("Backend not running. Using Mock Data.");
-      setIsOffline(true);
+      setDbStatus('disconnected');
     }
   };
 
@@ -56,40 +58,47 @@ const App: React.FC = () => {
       if (response.ok) {
         setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
         setCurrentUser(updatedUser);
-        alert("Database synchronized: Profile updated successfully.");
+        alert("Success: Profile saved to database.");
       } else {
-        alert("Failed to sync with database.");
+        alert("Server error: Could not save profile.");
       }
     } catch (error) {
       setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
       setCurrentUser(updatedUser);
-      alert("Local update successful. (Server connection unavailable)");
+      alert("Local update successful. (Database connection unavailable)");
     }
   };
 
   const handleLogin = (email: string) => {
-    let user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+    const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
     if (user) {
       setCurrentUser(user);
       setViewState('app');
     } else {
-      alert("Invalid credentials.");
+      alert("Account not found. Please Sign Up if you're new.");
     }
   };
 
   const handleRegister = async (name: string, email: string, role: UserRole) => {
     if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      alert("Email already registered.");
+      alert("This email is already registered.");
       return;
     }
 
     const prefix = role === UserRole.STUDENT ? 'S' : (role === UserRole.ALUMNI ? 'A' : 'ADM');
     const uniqueId = `${prefix}-${Date.now().toString().slice(-6)}`;
+    
     const newUser: User = {
-      id: uniqueId, name, email, role,
+      id: uniqueId,
+      name,
+      email,
+      role,
       avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random`,
-      bio: "I am new here!", skills: [], interests: [],
-      graduationYear: new Date().getFullYear(), department: "General",
+      bio: "I am new here! Excited to connect with the community.",
+      skills: [],
+      interests: [],
+      graduationYear: new Date().getFullYear(),
+      department: "General",
       privacySettings: { showEmail: true, showCompany: true, showSocials: true }
     };
 
@@ -99,20 +108,23 @@ const App: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser)
       });
+      
       if (response.ok) {
         setUsers(prev => [...prev, newUser]);
         setCurrentUser(newUser);
         setViewState('app');
         setCurrentTab('profile');
       } else {
-        throw new Error();
+        const errData = await response.json();
+        alert("Database Error: " + (errData.error || "Check if your table exists."));
       }
     } catch (error) {
+      // Offline fallback
       setUsers(prev => [...prev, newUser]);
       setCurrentUser(newUser);
       setViewState('app');
       setCurrentTab('profile');
-      alert("Account created locally. Data will sync once server is back.");
+      alert("Note: Server offline. User created in current session only.");
     }
   };
 
@@ -131,14 +143,14 @@ const App: React.FC = () => {
     
     return (
       <>
-        {isOffline && (
-          <div className="mb-6 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-amber-800 text-sm animate-pulse">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              <span>Database connection lost. You are browsing in offline mode.</span>
+        {dbStatus === 'disconnected' && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-amber-800 text-sm shadow-sm">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              <span>Database unreachable. Using local data. <strong>Changes won't be saved to MySQL.</strong></span>
             </div>
-            <button onClick={fetchUsers} className="flex items-center gap-1 hover:underline font-bold">
-              <RefreshCw className="w-3 h-3" /> Retry Sync
+            <button onClick={fetchUsers} className="flex items-center gap-2 hover:bg-amber-100 font-bold text-xs bg-amber-200/50 px-3 py-1.5 rounded-lg transition-colors">
+              <RefreshCw className="w-3.5 h-3.5" /> Retry Connection
             </button>
           </div>
         )}
@@ -167,6 +179,7 @@ const App: React.FC = () => {
       onTabChange={setCurrentTab}
       onLogout={handleLogout}
       onFeedbackSubmit={(r, c, com) => alert("Feedback received!")}
+      dbStatus={dbStatus}
     >
       {renderContent()}
     </Layout>

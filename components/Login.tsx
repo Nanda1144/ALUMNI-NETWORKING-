@@ -32,6 +32,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
     e.preventDefault();
     setError('');
 
+    // Handle forgot password mode separately to avoid nested complex logic
     if (authMode === 'forgot') {
         if (!email) {
             setError('Please enter your email address.');
@@ -141,6 +142,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
             {authMode === 'register' ? (
                 <div className="space-y-4 animate-fade-in">
                   <button 
+                    type="button"
                     onClick={() => setRole(UserRole.STUDENT)}
                     className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${role === UserRole.STUDENT ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                   >
@@ -152,6 +154,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
                   </button>
 
                   <button 
+                    type="button"
                     onClick={() => setRole(UserRole.ALUMNI)}
                     className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${role === UserRole.ALUMNI ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                   >
@@ -163,6 +166,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
                   </button>
 
                   <button 
+                    type="button"
                     onClick={() => setRole(UserRole.ADMIN)}
                     className={`w-full flex items-center gap-3 p-4 rounded-xl transition-all ${role === UserRole.ADMIN ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}
                   >
@@ -232,7 +236,8 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
               </div>
             </div>
 
-            {authMode !== 'forgot' && (
+            {/* Change: Use explicit equality checks to prevent unintentional narrowing that breaks subsequent 'forgot' comparisons */}
+            {(authMode === 'login' || authMode === 'register') && (
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="block text-sm font-medium text-slate-700">Password</label>
@@ -242,7 +247,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
                   </div>
                   <input 
                     type="password"
-                    required={authMode !== 'forgot'}
+                    required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
@@ -271,6 +276,45 @@ const Login: React.FC<LoginProps> = ({ onLogin, onRegister, onBack }) => {
           </form>
             
           <div className="mt-6 text-center">
-              {/* Fix: Separate forgot mode from login/register toggle to avoid redundant checks and type overlap issues */}
-              {authMode !== 'forgot' ? (
-                  <p className
+              {/* Fix: Directly use conditional blocks instead of nested ternary to avoid unintentional type narrowing issues */}
+              {authMode === 'forgot' && (
+                  <button 
+                    type="button" 
+                    onClick={() => setAuthMode('login')} 
+                    className="text-sm font-bold text-indigo-600 hover:underline"
+                  >
+                    Back to Login
+                  </button>
+              )}
+              {authMode === 'login' && (
+                  <p className="text-sm text-slate-500">
+                    Don't have an account?{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => setAuthMode('register')} 
+                      className="font-bold text-indigo-600 hover:underline"
+                    >
+                      Sign Up
+                    </button>
+                  </p>
+              )}
+              {authMode === 'register' && (
+                  <p className="text-sm text-slate-500">
+                    Already have an account?{' '}
+                    <button 
+                      type="button" 
+                      onClick={() => setAuthMode('login')} 
+                      className="font-bold text-indigo-600 hover:underline"
+                    >
+                      Log In
+                    </button>
+                  </p>
+              )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Login;

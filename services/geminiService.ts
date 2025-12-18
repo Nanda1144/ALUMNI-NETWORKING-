@@ -1,8 +1,54 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { User, MentorshipMatch, Job, JobMatch, Event, EventMatch } from '../types';
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+// Always use named parameter for apiKey and use process.env.API_KEY directly.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+export interface CommunityNews {
+  id: string;
+  title: string;
+  category: 'Success Story' | 'Research' | 'Campus Update';
+  content: string;
+  author: string;
+  date: string;
+  impactScore: number;
+}
+
+export const generateCommunityNews = async (institutionName: string = "AlumNexus University"): Promise<CommunityNews[]> => {
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Generate 3 inspiring and realistic news updates for ${institutionName}. Focus on alumni success, research breakthroughs, and campus development.`,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              category: { type: Type.STRING, enum: ['Success Story', 'Research', 'Campus Update'] },
+              content: { type: Type.STRING },
+              author: { type: Type.STRING },
+              impactScore: { type: Type.NUMBER }
+            },
+            required: ["title", "category", "content", "author", "impactScore"]
+          }
+        }
+      }
+    });
+    
+    const rawNews = JSON.parse(response.text || '[]');
+    return rawNews.map((n: any, i: number) => ({
+      ...n,
+      id: `news-${Date.now()}-${i}`,
+      date: 'Today'
+    }));
+  } catch (error) {
+    return [];
+  }
+};
 
 export const generateMentorshipMatches = async (
   student: User,
@@ -10,7 +56,6 @@ export const generateMentorshipMatches = async (
   focusArea?: string,
   preferences?: { communication?: string; availability?: string }
 ): Promise<MentorshipMatch[]> => {
-  if (!apiKey) return [];
   const alumniContext = alumni.map(a => ({ id: a.id, name: a.name, job: a.jobTitle, company: a.company, skills: a.skills, mentorshipTopics: a.mentorshipTopics }));
   const studentContext = { name: student.name, major: student.department, skills: student.skills, requestedFocus: focusArea };
 
@@ -40,7 +85,6 @@ export const generateMentorshipMatches = async (
 };
 
 export const generateJobMatches = async (student: User, jobs: Job[], preferences?: { type?: string; location?: string }): Promise<JobMatch[]> => {
-  if (!apiKey) return [];
   try {
       const response = await ai.models.generateContent({
           model: 'gemini-3-flash-preview',
@@ -66,7 +110,6 @@ export const generateJobMatches = async (student: User, jobs: Job[], preferences
 };
 
 export const generateEventRecommendations = async (user: User, events: Event[]): Promise<EventMatch[]> => {
-    if (!apiKey) return [];
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -96,7 +139,6 @@ export const analyzeProfileImprovements = async (user: User): Promise<{
     suggestions: { text: string; relatedSkills: string[] }[];
     missingFields: string[];
 }> => {
-    if (!apiKey) return { completeness: 0, suggestions: [], missingFields: [] };
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -129,7 +171,6 @@ export const analyzeProfileImprovements = async (user: User): Promise<{
 }
 
 export const generateProfileSummary = async (user: User): Promise<string> => {
-  if (!apiKey) return "";
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -143,7 +184,6 @@ export const syncExternalProfileData = async (user: User, platform: string, url:
     newSkills: string[];
     newCertifications: string[];
 }> => {
-    if (!apiKey) return { newSkills: [], newCertifications: [] };
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
@@ -165,7 +205,6 @@ export const syncExternalProfileData = async (user: User, platform: string, url:
 };
 
 export const generateSyntheticJobs = async (currentJobs: Job[]): Promise<Job[]> => {
-    if (!apiKey) return [];
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',

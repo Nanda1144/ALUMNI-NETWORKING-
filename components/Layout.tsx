@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { User, UserRole } from '../types';
 import { 
   LayoutDashboard, 
@@ -13,7 +13,10 @@ import {
   GraduationCap,
   UserCircle,
   MessageSquarePlus,
-  Star
+  Star,
+  Database,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -22,7 +25,8 @@ interface LayoutProps {
   currentTab: string;
   onTabChange: (tab: string) => void;
   onLogout: () => void;
-  onFeedbackSubmit?: (rating: number, category: string, comment: string) => void; // New prop
+  onFeedbackSubmit?: (rating: number, category: string, comment: string) => void;
+  dbStatus?: 'connected' | 'disconnected' | 'checking';
 }
 
 const FeedbackModal = ({ onClose, onSubmit }: { onClose: () => void, onSubmit: (r: number, cat: string, com: string) => void }) => {
@@ -92,7 +96,7 @@ const FeedbackModal = ({ onClose, onSubmit }: { onClose: () => void, onSubmit: (
     );
 };
 
-const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange, onLogout, onFeedbackSubmit }) => {
+const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange, onLogout, onFeedbackSubmit, dbStatus = 'checking' }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
 
@@ -156,7 +160,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          {/* Feedback Button for Non-Creators */}
           {user.role !== UserRole.CREATOR && (
                <button 
                 onClick={() => setShowFeedback(true)}
@@ -192,39 +195,6 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
           </button>
       </div>
 
-      {/* Mobile Menu Overlay */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 bg-slate-900 z-20 pt-20 px-4">
-          <nav className="space-y-2">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onTabChange(item.id);
-                  setIsMobileMenuOpen(false);
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-4 rounded-lg text-lg ${
-                  currentTab === item.id ? 'bg-indigo-600 text-white' : 'text-slate-400'
-                }`}
-              >
-                <item.icon className="w-6 h-6" />
-                {item.label}
-              </button>
-            ))}
-             <button
-                onClick={() => {
-                  onLogout();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-4 rounded-lg text-lg text-red-400"
-              >
-                <LogOut className="w-6 h-6" />
-                Logout
-              </button>
-          </nav>
-        </div>
-      )}
-
       {/* Main Content */}
       <main className="flex-1 md:ml-64 p-4 md:p-8 mt-16 md:mt-0 transition-all">
         <header className="flex justify-between items-center mb-8">
@@ -232,7 +202,16 @@ const Layout: React.FC<LayoutProps> = ({ children, user, currentTab, onTabChange
              <h1 className="text-2xl font-bold text-slate-800">
               {navItems.find(i => i.id === currentTab)?.label}
             </h1>
-            <p className="text-slate-500 text-sm">Welcome back, {user.name}</p>
+            <div className="flex items-center gap-3 mt-1">
+              <p className="text-slate-500 text-sm">Welcome back, {user.name}</p>
+              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                dbStatus === 'connected' ? 'bg-emerald-100 text-emerald-700' : 
+                dbStatus === 'disconnected' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'
+              }`}>
+                {dbStatus === 'connected' ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                {dbStatus === 'connected' ? 'DB Online' : dbStatus === 'disconnected' ? 'Offline Mode' : 'Syncing...'}
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-4">
              <div className="text-right hidden sm:block">
